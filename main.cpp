@@ -26,14 +26,11 @@
 using namespace std;
 
 
-int main(int argc, char* argv[]) {
+int main() {
 
-    pair<vector<pair<vector<float>, int>>, vector<pair<vector<float>, int>>> data =  read();
-    vector<pair<vector<float>, int>> train_data = data.fi;
-    vector<pair<vector<float>, int>> test_data = data.se;
-
-    int n_train = sz(train_data);
-    int n_test = sz(test_data);
+    pair<DATA,DATA> data =  read();
+    DATA train_data = data.fi; DATA test_data = data.se;
+    int n_train = sz(train_data); int n_test = sz(test_data);
 
     int batch = 1;
     ConvNet net = ConvNet(batch);
@@ -44,32 +41,31 @@ int main(int argc, char* argv[]) {
     {
         float average_loss = 0;
 
-        REP0(i , sz(train_data))
+        REP0(i , n_train)
         {
             float * image = train_data[i].fi.data();
             int target = train_data[i].se;
-
             float * y = net.forward(image);
-            float loss = net.cross_entropy_loss(y, target);
-            net.backward(y, target);
-            net.update(lr);
-            if(i<1000)average_loss += loss;
-            else if (i==1000)average_loss /= i;
-            else average_loss = average_loss *0.99 + loss*0.01;
-            
-            if(i>= 1000 && (i%1000==0))cout<<"iteration "<<i<<" average_loss"<< average_loss<<endl;
+            //float loss = net.cross_entropy_loss(y, target);
+            //cout<<loss<<endl;
+            //net.backward(y, target);
+            //net.update(lr);
+            //if(i<1000)average_loss += loss;
+            //else if (i==1000)average_loss /= i;
+            //else average_loss = average_loss *0.99 + loss*0.01;
+            //if(i>= 1000 && (i%1000==0))cout<<"iteration "<<i<<" average_loss"<< average_loss<<endl;
         }
 
         // eval
         int correct = 0;
-        REP0(i , sz(test_data))
+        REP0(i , n_test)
         {
             float * image = test_data[i].fi.data();
             int target = test_data[i].se;
 
             if(net.predict(image)==target)correct+=1;
         }
-        cout<< "epoch "<< epoch<<"accuracy " << ((float) correct / sz(test_data))<<endl; 
+        cout<< "epoch "<< epoch<<"accuracy " << ((float) correct / n_test)<<endl; 
     }
 
 }

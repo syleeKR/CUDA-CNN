@@ -50,12 +50,12 @@ class ConvNet
             cnn1.forward(x0);
             maxpool1.forward(cnn1.out);
             relu1.forward(maxpool1.out);
-
+  
             cnn2.forward(relu1.out);
             maxpool2.forward(cnn2.out);
             relu2.forward(maxpool2.out);
             cnn3.forward(relu2.out);
-
+            
             softmax.forward(cnn3.out);
             return softmax.out;
         }
@@ -63,6 +63,7 @@ class ConvNet
         void backward(float * y, int ytrue)
         {
             float * dL_over_dy = new float[10];
+            REP0(i, 10)dL_over_dy[i] = 0.0;
             dL_over_dy[ytrue] = -1.0 / y[ytrue];
 
             softmax.backward(dL_over_dy);
