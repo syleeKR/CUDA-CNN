@@ -25,6 +25,8 @@
 #include "./mnist/mnist_reader.hpp"
 #include "./mnist/read.hpp"
 
+#include "./gpu_kernels/cnn.cuh"
+
 #include "./networks/relu.hpp"
 #include "./networks/maxpool.hpp"
 #include "./networks/cnn.hpp"
@@ -80,19 +82,23 @@ void eval(DATA & test_data, int batch_size, ConvNet & net, int epoch)
     cout<< "epoch "<< epoch<<" accuracy " << ((float) correct / n_test)<<endl; 
 
 }
-int main(int args, char * argv[]) {
-
+int main(int args, char * argv[])
+{
+    // read device mode
     string device = "cpu";
-    if(args>1 && argv[1] == "gpu")device = "gpu";
+    if(args>1){string mode = argv[1]; if(mode=="gpu")device = "gpu";}
 
+    // prepare Mnist data
     pair<DATA,DATA> data =  read();
     DATA train_data = data.fi; DATA test_data = data.se;
 
-    int batch_size = 16;
+    // set up some hyperparameters and network
+    int batch_size = 64;
     ConvNet net = ConvNet(device , batch_size);
     int total_epoch = 10;
     float lr = 0.0001;
 
+    // run code
     REP0(epoch, total_epoch)
     {
         vint shuffled_index = randomPermutation(sz(train_data));
