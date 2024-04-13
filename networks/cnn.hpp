@@ -126,8 +126,6 @@ class CNN
                     }
                 }
             }
-
-
             //calculate dLdx
             REP0(b, B)
             {
@@ -162,24 +160,6 @@ class CNN
         {
             REP0(i, out_dim *in_dim*filter_size * filter_size){
                 filter[i] -= lr * dLdf[i];
-            }
-        }
-        
-        void print(string s)
-        {
-            if(s == "out"){
-            for(int i=0; i<B*out_dim*Hout *Wout; i+=100)cout<<out[i]<<" ";
-            cout<<endl;}
-            if(s == "grad")
-            {
-                cout<< "dLdx"<<endl;
-                for(int i ;i <B*in_dim*H*W; i+= 100)cout<<dLdx[i]<<" ";
-                cout<<endl;
-                cout<<"dLdf"<<endl;
-                float maxval= 0.0;
-                for(int i; i <out_dim * in_dim * filter_size * filter_size; i+=100){cout<<dLdf[i]<<" ";maxval = max(maxval, abs(dLdf[i]));}
-                cout<<"maxval of gradient : " << maxval<<endl;
-                cout<<endl;
             }
         }
 

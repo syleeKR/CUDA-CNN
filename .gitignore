@@ -1,4 +1,6 @@
 main
-main.exe
-.vscode
-main.dSYM
+*.exe
+.vscode/
+main.dSYM/
+*.exp
+*.lib

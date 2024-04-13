@@ -6,6 +6,7 @@ class ConvNet
     
     public:
         int B;
+        string device;
         CNN * cnn1= nullptr;
         MAXPOOL * maxpool1= nullptr;
         RELU * relu1= nullptr;
@@ -25,28 +26,28 @@ class ConvNet
             delete relu2;
             delete softmax;
         }
-        ConvNet(int B):B(B){
+        ConvNet(string device, int B):device(device),B(B){
             vint input_size;
-            // B 1 28 28
+
             input_size = {B,1,28,28};
             cnn1 = new CNN(1, 8, 5, input_size);
-            // B 32 24 24
+
             input_size = {B,8,24,24};
             maxpool1 = new MAXPOOL(input_size);
-            // B 32 12 12
+
             relu1 = new RELU(B * 8 * 12 * 12);
-            // B 32 12 12
+
             input_size = {B,8,12,12};
             cnn2 = new CNN(8, 16, 3, input_size);
-            // B 64 10 10
+
             input_size = {B,16,10,10};
             maxpool2 = new MAXPOOL(input_size);
-            // B 64 5 5
+
             relu2 = new RELU(B * 16 * 5 * 5);
-            // B 64 5 5
+
             input_size = {B,16,5,5};
             cnn3 = new CNN(16, 10, 5, input_size);
-            // B 10 1 1
+            
             input_size = {B,10,1,1};
             softmax = new SOFTMAX(input_size);
         }
@@ -79,7 +80,7 @@ class ConvNet
             float * dL_over_dy = new float[B * 10];
             REP0(i, B){
                 REP0(j, 10)dL_over_dy[i*10 + j] = 0.0;
-                dL_over_dy[i*10 + targets[i]] = -1.0 / max(y[i*10 + targets[i]] , (float)0.00001)/B;
+                dL_over_dy[i*10 + targets[i]] = -1.0 / max(y[i*10 + targets[i]] , (float)0.00001);
             }            
             
             softmax->backward(dL_over_dy);            
@@ -103,21 +104,25 @@ class ConvNet
             cnn3->update(lr);
         }
 
-        int predict(float * x)
+        int * predict(float * x)
         {
             float * y = forward(x);
+            int * predictions = new int[B];
 
-            int maxv = -1;
-            int maxindex = 0;
-            REP0(i, 10)
-            {
-                if (y[i] > maxv)
+            REP0(b, B){
+                float maxv = -1.0;
+                int maxindex = 0;
+                REP0(i, 10)
                 {
-                    maxv = y[i];
-                    maxindex = i;
+                    if (y[10 * b + i] > maxv)
+                    {
+                        maxv = y[10 * b + i];
+                        maxindex = i;
+                    }
                 }
+                predictions[b] = maxindex;
             }
-            return maxindex;
+            return predictions;
         }
 };
 
