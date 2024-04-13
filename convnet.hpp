@@ -6,104 +6,101 @@ class ConvNet
     
     public:
         int B;
-        CNN cnn1;
-        MAXPOOL maxpool1;
-        RELU relu1;
-        CNN cnn2;
-        MAXPOOL maxpool2;
-        RELU relu2;
-        CNN cnn3;
-        SOFTMAX softmax;
-
+        CNN * cnn1= nullptr;
+        MAXPOOL * maxpool1= nullptr;
+        RELU * relu1= nullptr;
+        CNN * cnn2= nullptr;
+        MAXPOOL * maxpool2= nullptr;
+        RELU * relu2= nullptr;
+        CNN * cnn3= nullptr;
+        SOFTMAX * softmax = nullptr;
+        ~ConvNet()
+        {
+            delete cnn1;
+            delete cnn2;
+            delete cnn3;
+            delete maxpool1;
+            delete maxpool2;
+            delete relu1;
+            delete relu2;
+            delete softmax;
+        }
         ConvNet(int B):B(B){
             vint input_size;
             // B 1 28 28
             input_size = {B,1,28,28};
-            cnn1 = CNN(1, 8, 5, input_size);
+            cnn1 = new CNN(1, 8, 5, input_size);
             // B 32 24 24
             input_size = {B,8,24,24};
-            maxpool1 = MAXPOOL(input_size);
+            maxpool1 = new MAXPOOL(input_size);
             // B 32 12 12
-            relu1 = RELU(B * 8 * 12 * 12);
+            relu1 = new RELU(B * 8 * 12 * 12);
             // B 32 12 12
             input_size = {B,8,12,12};
-            cnn2 = CNN(8, 16, 3, input_size);
+            cnn2 = new CNN(8, 16, 3, input_size);
             // B 64 10 10
             input_size = {B,16,10,10};
-            maxpool2 = MAXPOOL(input_size);
+            maxpool2 = new MAXPOOL(input_size);
             // B 64 5 5
-            relu2 = RELU(B * 16 * 5 * 5);
+            relu2 = new RELU(B * 16 * 5 * 5);
             // B 64 5 5
             input_size = {B,16,5,5};
-            cnn3 = CNN(16, 10, 5, input_size);
+            cnn3 = new CNN(16, 10, 5, input_size);
             // B 10 1 1
             input_size = {B,10,1,1};
-            softmax = SOFTMAX(input_size);
+            softmax = new SOFTMAX(input_size);
         }
-        float cross_entropy_loss(float * y, int y_true)
+        float cross_entropy_loss(float * y, int * y_true)
         {
-            // need fix : Batch
-            return -log(y[y_true]+1e-8);
+            float sum = 0.0;
+            REP0(b, B)sum += -log(y[10 * b + y_true[b]] + 1e-8);
+            return sum/B;
         }
 
         float * forward(float * x0)
         {
-            cnn1.forward(x0);
-            maxpool1.forward(cnn1.out);
-            relu1.forward(maxpool1.out);
+            cnn1->forward(x0);
+            maxpool1->forward(cnn1->out);
+            relu1->forward(maxpool1->out);
+
   
-            cnn2.forward(relu1.out);
-            maxpool2.forward(cnn2.out);
-            relu2.forward(maxpool2.out);
-            cnn3.forward(relu2.out);
-
-            softmax.forward(cnn3.out);
-
-            return softmax.out;
+            cnn2->forward(relu1->out);         
+            maxpool2->forward(cnn2->out);
+            relu2->forward(maxpool2->out);
+            cnn3->forward(relu2->out);
+            
+            softmax->forward(cnn3->out);
+            
+            return softmax->out;
         }
 
-        void backward(float * y, int ytrue)
+        void backward(float * y, int * targets)
         {   
             float * dL_over_dy = new float[B * 10];
-            // need fix : Batch
-            REP0(i, 10)dL_over_dy[i] = 0.0;
-            cout<<"ytrue : "<<ytrue<<endl;
-            dL_over_dy[ytrue] = -1.0 / max(y[ytrue] , (float)0.00001);
+            REP0(i, B){
+                REP0(j, 10)dL_over_dy[i*10 + j] = 0.0;
+                dL_over_dy[i*10 + targets[i]] = -1.0 / max(y[i*10 + targets[i]] , (float)0.00001)/B;
+            }            
             
-            cout<<"out stored in softmax"<<endl;
-            REP0(i, 10)cout<<softmax.out[i]<<" ";
-            cout<<endl;
-            /*
-            cout<<"dL_over_dy"<<endl;
-            REP0(i, 10)cout<<dL_over_dy[i]<<" ";
-            cout<<endl;
-        
-            
-            softmax.backward(dL_over_dy);
-            cout<<"DL_over_dx"<<endl;
-            REP0(i, 10)cout<<softmax.dLdx[i]<<" ";
-            cout<<endl;
-            */
-            //cnn3.backward(softmax.dLdx);
+            softmax->backward(dL_over_dy);            
+            cnn3->backward(softmax->dLdx);
 
-            //relu2.backward(cnn3.dLdx);
-            //maxpool2.backward(relu2.dLdx);
-            //cnn2.backward(maxpool2.dLdx);
-            //cout<<"cnn2"<<endl;
-            //cnn2.print("grad");
+            relu2->backward(cnn3->dLdx);
+            maxpool2->backward(relu2->dLdx);
+            cnn2->backward(maxpool2->dLdx);
 
-            //relu1.backward(cnn2.dLdx);
-            //maxpool1.backward(relu1.dLdx);
-            //cnn1.backward(maxpool1.dLdx);
+            relu1->backward(cnn2->dLdx);
+            maxpool1->backward(relu1->dLdx);
+            cnn1->backward(maxpool1->dLdx);
             delete [] dL_over_dy;
             
         }
 
         void update(float lr)
         {
-            cnn1.update(lr);
-            cnn2.update(lr);
-            cnn3.update(lr);
+            cnn1->update(lr);
+            cnn2->update(lr);
+            cnn3->update(lr);
         }
 
         int predict(float * x)

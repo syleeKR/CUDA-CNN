@@ -25,7 +25,24 @@
 
 using namespace std;
 
-
+float * make_image_batch(DATA &train_data, int start, int len)
+{
+    vfloat total;
+    for(int i=start; i<start+len; i++)
+    {
+        vfloat tmp = train_data[i].fi;
+        total.insert(total.end(), tmp.begin(), tmp.end());
+    }
+    return total.data();
+}
+void make_target_batch(DATA &train_data, int start, int len, int * targets)
+{
+    vint total;
+    for(int i=start; i<start+len; i++)
+    {
+        targets[i-start] = train_data[i].se;
+    }
+}
 int main() {
 
     pair<DATA,DATA> data =  read();
@@ -41,23 +58,21 @@ int main() {
     {
         float average_loss = 0;
 
-        REP0(i , n_train)
+        for(int i=0 ; i<n_train; i+=batch)
         {
-            if(i%100==0)cout<<"iteration : "<<i<<endl;
-            float * image = train_data[i].fi.data();
-            int target = train_data[i].se;
-            float * y = net.forward(image);
-            cout<<" forward result "<<endl;
-            REP0(i, 10)cout<<y[i]<<" ";
-            cout<<endl;
-            float loss = net.cross_entropy_loss(y, target);
+            float * image = make_image_batch(train_data, i, min(batch, n_train-i));
+            int * targets = new int[min(batch, n_train-i)];
+            make_target_batch(train_data, i, min(batch, n_train-i), targets);
 
-            net.backward(y, target);
-            //net.update(lr);
+            float * y = net.forward(image);
+            float loss = net.cross_entropy_loss(y, targets);
+            net.backward(y, targets);
+            net.update(lr);
             if(i<1000)average_loss += loss;
             else if (i==1000)average_loss /= i;
             else average_loss = average_loss *0.99 + loss*0.01;
             if(i>= 1000 && (i%1000==0))cout<<"iteration "<<i<<" average_loss "<< average_loss<<endl;
+            delete[] targets;
         }
 
         // eval

@@ -34,7 +34,7 @@ class CNN
             return i *(in_dim * filter_size * filter_size) + j *(filter_size * filter_size) + k*filter_size + l;
         }
         CNN(){}
-        CNN(int in_dim, int out_dim, int filter_size, vint & input_size):in_dim(in_dim), out_dim(out_dim), filter_size(filter_size)
+        CNN(int in_dim, int out_dim, int filter_size, vint  input_size):in_dim(in_dim), out_dim(out_dim), filter_size(filter_size)
         {
             B = input_size[0];
             C = input_size[1];
@@ -52,9 +52,8 @@ class CNN
             std::random_device rd;  
             std::mt19937 gen(rd()); 
             int ntot =(out_dim * in_dim * filter_size * filter_size);
-            float bound = sqrt(6/(float)ntot);
+            float bound = sqrt(6.0/(float)ntot);
             std::uniform_real_distribution<float> dis(-bound, +bound); 
-            
             REP0(i, out_dim * in_dim * filter_size * filter_size){filter[i] =dis(gen);}
                         
         }
@@ -169,7 +168,7 @@ class CNN
         void print(string s)
         {
             if(s == "out"){
-            REP0(i, B*out_dim*Hout *Wout)cout<<out[i]<<" ";
+            for(int i=0; i<B*out_dim*Hout *Wout; i+=100)cout<<out[i]<<" ";
             cout<<endl;}
             if(s == "grad")
             {

@@ -30,7 +30,7 @@ class RELU
             {
                 in[i] = x[i];
                 if(x[i] > 0 )out[i] = x[i];
-                else out[i] = 0;
+                else out[i] = 0.0;
             }
         }
 
@@ -39,7 +39,7 @@ class RELU
             REP0(i,n)
             {
                 if(in[i]>0)dLdx[i] = dLdy[i] * 1;
-                else dLdx[i] = 0;
+                else dLdx[i] = 0.0;
             }
         }
 };
