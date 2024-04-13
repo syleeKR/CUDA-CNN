@@ -45,8 +45,9 @@ class SOFTMAX
                 REP0(j,C)
                 {
                     int p = index(i,j);
-                    out[p] = exp(x[p])/total;
+                    out[p] = exp(x[p])/max(total, (float)0.00000001);
                 }
+                
             }
         }
 
@@ -63,13 +64,13 @@ class SOFTMAX
                         int p = index(i,xpointer);
                         if (xpointer==ypointer)
                         {
-                            float grad = out[ypointer] * (1 - out[ypointer]);
-                            dLdx[p]+=grad;
+                            float grad = out[index(i,ypointer)] * (1 - out[index(i,xpointer)]);
+                            dLdx[p]+=grad * dLdy[index(i,ypointer)];
                         }
                         else
                         {
-                            float grad = -out[ypointer] * out[xpointer];
-                            dLdx[p] += grad;
+                            float grad = -out[index(i,ypointer)] * out[index(i,xpointer)];
+                            dLdx[p] += grad * dLdy[index(i,ypointer)];
                         }
 
                     }

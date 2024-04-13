@@ -84,6 +84,7 @@ class MAXPOOL
                     }
                 }
             }
+
         }
 
         void backward(float * dLdy)
@@ -97,7 +98,7 @@ class MAXPOOL
                         REP0(l, W)
                         {
                             int p = index(i,j,k,l);
-                            if (wasmax[p]==false)dLdx[p]=0;
+                            if (wasmax[p]==false)dLdx[p]=0.0;
                             else
                             {
                                 dLdx[p] = dLdy[index_out(i,j,k/2, l/2)];

@@ -51,22 +51,12 @@ class CNN
             
             std::random_device rd;  
             std::mt19937 gen(rd()); 
-            std::uniform_real_distribution<float> dis(-0.001, +0.001); 
+            int ntot =(out_dim * in_dim * filter_size * filter_size);
+            float bound = sqrt(6/(float)ntot);
+            std::uniform_real_distribution<float> dis(-bound, +bound); 
             
-            REP0(i, out_dim)
-            {
-                REP0(j, in_dim)
-                {
-                    REP0(k1, filter_size)
-                    {
-                        REP0(k2, filter_size)
-                        {
-                            filter[index_filter(i,j,k1,k2)] =dis(gen);
-                        }
-
-                    }
-                }
-            }
+            REP0(i, out_dim * in_dim * filter_size * filter_size){filter[i] =dis(gen);}
+                        
         }
         ~CNN()
         {
@@ -110,12 +100,88 @@ class CNN
 
         void backward(float * dLdy)
         {
-            return;
+            // calculate dLdf
+
+            REP0(c_o, out_dim)
+            {
+                REP0(c_i, in_dim)
+                {
+                    REP0(i, filter_size)
+                    {
+                        REP0(j, filter_size)
+                        {
+                            int index = index_filter(c_o, c_i, i, j);
+                            dLdf[index] = 0.0;
+
+                            REP0(b, B)
+                            {
+                                REP0(k, Hout)
+                                {
+                                    REP0(l, Wout)
+                                    {
+                                        dLdf[index] += dLdy[index_out(b,c_o, k,l)] * in[index_in(b, c_i, k+i, j+l)];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            //calculate dLdx
+            REP0(b, B)
+            {
+                REP0(c, C)
+                {
+                    REP0(h, H)
+                    {
+                        REP0(w, W)
+                        {
+                            int index = index_in(b,c,h,w);
+                            dLdx[index]  = 0.0;
+                            REP0(i, out_dim)
+                            {
+                                REP0(j, filter_size)
+                                {
+                                    REP0(k, filter_size)
+                                    {
+                                        if (h>=j && w>=k && h-j <Hout && w -k <Wout)
+                                        {
+                                            dLdx[index] += filter[index_filter(i, c, j, k)] * dLdy[index_out(b, i, h-j, w-k)];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         void update(float lr)
         {
-            REP0(i, out_dim *in_dim*filter_size * filter_size){filter[i] -= lr * dLdf[i];}
+            REP0(i, out_dim *in_dim*filter_size * filter_size){
+                filter[i] -= lr * dLdf[i];
+            }
+        }
+        
+        void print(string s)
+        {
+            if(s == "out"){
+            REP0(i, B*out_dim*Hout *Wout)cout<<out[i]<<" ";
+            cout<<endl;}
+            if(s == "grad")
+            {
+                cout<< "dLdx"<<endl;
+                for(int i ;i <B*in_dim*H*W; i+= 100)cout<<dLdx[i]<<" ";
+                cout<<endl;
+                cout<<"dLdf"<<endl;
+                float maxval= 0.0;
+                for(int i; i <out_dim * in_dim * filter_size * filter_size; i+=100){cout<<dLdf[i]<<" ";maxval = max(maxval, abs(dLdf[i]));}
+                cout<<"maxval of gradient : " << maxval<<endl;
+                cout<<endl;
+            }
         }
 
 

@@ -43,17 +43,21 @@ int main() {
 
         REP0(i , n_train)
         {
+            if(i%100==0)cout<<"iteration : "<<i<<endl;
             float * image = train_data[i].fi.data();
             int target = train_data[i].se;
             float * y = net.forward(image);
-            //float loss = net.cross_entropy_loss(y, target);
-            //cout<<loss<<endl;
-            //net.backward(y, target);
+            cout<<" forward result "<<endl;
+            REP0(i, 10)cout<<y[i]<<" ";
+            cout<<endl;
+            float loss = net.cross_entropy_loss(y, target);
+
+            net.backward(y, target);
             //net.update(lr);
-            //if(i<1000)average_loss += loss;
-            //else if (i==1000)average_loss /= i;
-            //else average_loss = average_loss *0.99 + loss*0.01;
-            //if(i>= 1000 && (i%1000==0))cout<<"iteration "<<i<<" average_loss"<< average_loss<<endl;
+            if(i<1000)average_loss += loss;
+            else if (i==1000)average_loss /= i;
+            else average_loss = average_loss *0.99 + loss*0.01;
+            if(i>= 1000 && (i%1000==0))cout<<"iteration "<<i<<" average_loss "<< average_loss<<endl;
         }
 
         // eval
