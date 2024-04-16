@@ -2,7 +2,7 @@
 
 _No Python, No torch, No tensors_  
 _No external frameworks, libraries, and dependencies_  
-_Just pure C++/CUDA with the help of simple math!_
+_Just pure C++/CUDA with some simple math!_
 
 ## QuickStart
 To compile
@@ -55,9 +55,9 @@ Convnet :
     Softmax()
 ```
 Training for 1 epoch
-> _gpu + convolution via matrix multiplication_ : time : 75.76s  accuracy : 97.76%  
-> _gpu + direct convolution_ : time : 69.27  accuracy : 97.76%  
-
+> [_gpu + convolution via matrix multiplication_]  time : 75.76s  accuracy : 97.76%  
+> [_gpu + direct convolution_]  time : 69.27  accuracy : 97.76%  
+> [_cpu_]  
 <br>
 
 Benchmark setting 2
@@ -75,7 +75,6 @@ Convnet :
     Softmax()
 ```
 Training for 1 epoch
-> _gpu + convolution via matrix multiplication_ : time : 348.78s  accuracy : 97.68%  
-> _gpu + direct convolution_ : time : 69.27  accuracy : 97.76%  
-
-
+> [_gpu + convolution via matrix multiplication_]  time : 348.78s  accuracy : 97.68%  
+> [_gpu + direct convolution_]  time : 350.51s  accuracy : 97.74%  
+> [_cpu_]  

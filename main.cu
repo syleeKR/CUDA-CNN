@@ -25,8 +25,8 @@
 #include "./mnist/mnist_reader.hpp"
 #include "./mnist/read.hpp"
 
-#include "./gpu_kernels/cnn_direct.cuh"
-#include "./gpu_kernels/cnn_matmul.cuh"
+#include "./gpu_kernels/convolution_direct.cuh"
+#include "./gpu_kernels/convolution_matmul.cuh"
 
 #include "./networks/relu.hpp"
 #include "./networks/maxpool.hpp"
