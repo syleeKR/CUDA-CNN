@@ -25,7 +25,8 @@
 #include "./mnist/mnist_reader.hpp"
 #include "./mnist/read.hpp"
 
-#include "./gpu_kernels/cnn.cuh"
+#include "./gpu_kernels/cnn_direct.cuh"
+#include "./gpu_kernels/cnn_matmul.cuh"
 
 #include "./networks/relu.hpp"
 #include "./networks/maxpool.hpp"
@@ -86,7 +87,7 @@ int main(int args, char * argv[])
 {
     // read device mode
     string device = "cpu";
-    if(args>1){string mode = argv[1]; if(mode=="gpu")device = "gpu";}
+    if(args>1){string mode = argv[1]; if(mode=="gpu")device = "gpu"; if(mode=="gpu_mm")device = "gpu_mm";}
 
     // prepare Mnist data
     pair<DATA,DATA> data =  read();
@@ -95,8 +96,8 @@ int main(int args, char * argv[])
     // set up some hyperparameters and network
     int batch_size = 64;
     ConvNet net = ConvNet(device , batch_size);
-    int total_epoch = 10;
-    float lr = 0.0001;
+    int total_epoch = 3;
+    float lr = 0.005;
 
     // run code
     REP0(epoch, total_epoch)

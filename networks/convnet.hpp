@@ -30,23 +30,23 @@ class ConvNet
             vint input_size;
 
             input_size = {B,1,28,28};
-            cnn1 = new CNN(1, 8, 5, input_size, device);
+            cnn1 = new CNN(1, 16, 5, input_size, device);
 
-            input_size = {B,8,24,24};
+            input_size = {B,16,24,24};
             maxpool1 = new MAXPOOL(input_size);
 
-            relu1 = new RELU(B * 8 * 12 * 12);
+            relu1 = new RELU(B * 16 * 12 * 12);
 
-            input_size = {B,8,12,12};
-            cnn2 = new CNN(8, 16, 3, input_size, device);
+            input_size = {B,16,12,12};
+            cnn2 = new CNN(16, 32, 3, input_size, device);
 
-            input_size = {B,16,10,10};
+            input_size = {B,32,10,10};
             maxpool2 = new MAXPOOL(input_size);
 
-            relu2 = new RELU(B * 16 * 5 * 5);
+            relu2 = new RELU(B * 32 * 5 * 5);
 
-            input_size = {B,16,5,5};
-            cnn3 = new CNN(16, 10, 5, input_size, device);
+            input_size = {B,32,5,5};
+            cnn3 = new CNN(32, 10, 5, input_size, device);
             
             input_size = {B,10,1,1};
             softmax = new SOFTMAX(input_size);

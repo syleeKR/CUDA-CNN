@@ -48,8 +48,8 @@ class CNN
             C = input_size[1];
             H = input_size[2];
             W = input_size[3];
-            Hout = H - 2 * (filter_size/2);
-            Wout = W - 2 * (filter_size/2);
+            Hout = H - filter_size + 1;
+            Wout = W - filter_size + 1;
 
             in = new float[B*in_dim*H*W];
             out = new float[B*out_dim*Hout *Wout];
@@ -64,7 +64,7 @@ class CNN
             std::uniform_real_distribution<float> dis(-bound, +bound); 
             REP0(i, out_dim * in_dim * filter_size * filter_size){filter[i] =dis(gen);}
 
-            if (device == "gpu")
+            if (device == "gpu" || device == "gpu_mm")
             {
                 cudaMalloc((void **)&in_d, sizeof(float) * B*in_dim*H*W);
                 cudaMalloc((void **)&out_d, sizeof(float) * B*out_dim*Hout *Wout);
@@ -82,7 +82,7 @@ class CNN
             delete [] filter;
             delete [] dLdf;
 
-            if (device == "gpu")
+            if (device == "gpu" || device == "gpu_mm")
             {
                 cudaFree(in_d);
                 cudaFree(out_d);
@@ -94,12 +94,46 @@ class CNN
         void forward(float * x)
         {
             if (device == "gpu")forward_gpu(x);
+            else if(device == "gpu_mm")forward_gpu_mm(x);
             else forward_cpu(x);
         }
         void backward(float * dLdy)
         {
             if (device == "gpu")backward_gpu(dLdy);
+            else if(device == "gpu_mm")backward_gpu(dLdy);
             else backward_cpu(dLdy);
+        }
+        void forward_gpu_mm(float * x)
+        {
+            // copy to device
+            memcpy(in, x, B*in_dim*H*W*sizeof(float));
+            cudaMemcpy(filter_d, filter , sizeof(float) * out_dim * in_dim * filter_size * filter_size, cudaMemcpyHostToDevice);
+            cudaMemcpy(in_d, in, sizeof(float)*B*in_dim*H*W, cudaMemcpyHostToDevice);
+
+            // Step 1 : unroll please
+            float * unrolled_d;
+            cudaMalloc((void **)&unrolled_d, sizeof(float)*B*in_dim*filter_size*filter_size*Hout*Wout);
+            dim3 dimofgrid_unroll(ceil((float)B * Hout*Wout*in_dim / 1024),1,1);
+            dim3 dimofblock_unroll(1024,1,1);
+            mm_unroll<<<dimofgrid_unroll, dimofblock_unroll>>>(in_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, unrolled_d);
+            
+            // Step 2 : Matmul (cout Cin*f*f) . (Cin*f*f, B*Hout*Wout)
+            float * temp_d; 
+            cudaMalloc((void **)&temp_d, sizeof(float)*B*out_dim*Hout*Wout);
+
+            dim3 dimofgrid_matmtul( ceil((float)(B*Hout*Wout)/TILE_SIZE), ceil((float)out_dim/TILE_SIZE));
+            dim3 dimofblock_matmul(TILE_SIZE,TILE_SIZE);
+            mm_matmul<<<dimofgrid_matmtul, dimofblock_matmul>>>(filter_d, unrolled_d, out_dim, in_dim * filter_size*filter_size, B * Hout*Wout, temp_d);
+
+            // Step 3 : Transpose (Cout B*Hout*Wout) -> (B Cout Hout Wout) 
+            dim3 dimofgrid_transpose(ceil((float)B * out_dim * Hout*Wout / 1024),1,1);
+            dim3 dimofblock_transpose(1024,1,1);
+            mm_transpose<<<dimofgrid_transpose, dimofblock_transpose>>>(temp_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, out_d);
+
+            // Copy and free memory
+            cudaMemcpy(out, out_d, sizeof(float) * B * out_dim * Hout * Wout, cudaMemcpyDeviceToHost);
+            cudaFree(temp_d);
+            cudaFree(unrolled_d);
         }
 
         void forward_gpu(float * x)
