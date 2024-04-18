@@ -21,9 +21,11 @@
 #include <string>
 #include <ctime>
 #include <algorithm>
+#include <cublas_v2.h>
 
 #include "./mnist/mnist_reader.hpp"
 #include "./mnist/read.hpp"
+#include "./utils/utils.hpp"
 
 #include "./gpu_kernels/convolution_direct.cuh"
 #include "./gpu_kernels/convolution_matmul.cuh"
@@ -34,7 +36,7 @@
 #include "./networks/softmax.hpp"
 #include "./networks/convnet.hpp"
 
-#include "./utils/utils.hpp"
+
 
 using namespace std;
 

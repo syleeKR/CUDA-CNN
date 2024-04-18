@@ -100,10 +100,10 @@ class CNN
         void backward(float * dLdy)
         {
             if (device == "gpu")backward_gpu(dLdy);
-            else if(device == "gpu_mm")backward_gpu(dLdy);
+            else if(device == "gpu_mm")backward_gpu_mm(dLdy);
             else backward_cpu(dLdy);
         }
-        void forward_gpu_mm(float * x)
+        void forward_gpu_mm(float * x, bool use_cublas= true)
         {
             // copy to device
             memcpy(in, x, B*in_dim*H*W*sizeof(float));
@@ -121,10 +121,15 @@ class CNN
             float * temp_d; 
             cudaMalloc((void **)&temp_d, sizeof(float)*B*out_dim*Hout*Wout);
 
-            dim3 dimofgrid_matmtul( ceil((float)(B*Hout*Wout)/TILE_SIZE), ceil((float)out_dim/TILE_SIZE));
-            dim3 dimofblock_matmul(TILE_SIZE,TILE_SIZE);
-            mm_matmul<<<dimofgrid_matmtul, dimofblock_matmul>>>(filter_d, unrolled_d, out_dim, in_dim * filter_size*filter_size, B * Hout*Wout, temp_d);
-
+            if (use_cublas)
+            {
+                cublas_matmul(filter_d, unrolled_d,temp_d,out_dim, in_dim * filter_size*filter_size, B * Hout*Wout);
+            }
+            else{
+                dim3 dimofgrid_matmtul( ceil((float)(B*Hout*Wout)/TILE_SIZE), ceil((float)out_dim/TILE_SIZE));
+                dim3 dimofblock_matmul(TILE_SIZE,TILE_SIZE);
+                mm_matmul<<<dimofgrid_matmtul, dimofblock_matmul>>>(filter_d, unrolled_d, out_dim, in_dim * filter_size*filter_size, B * Hout*Wout, temp_d);
+            }
             // Step 3 : Transpose (Cout B*Hout*Wout) -> (B Cout Hout Wout) 
             dim3 dimofgrid_transpose(ceil((float)B * out_dim * Hout*Wout / 1024),1,1);
             dim3 dimofblock_transpose(1024,1,1);
@@ -147,6 +152,68 @@ class CNN
             dim3 dimofblock(TILE_SIZE,TILE_SIZE,1);
             forward_kernel<<<dimofgrid, dimofblock>>>(in_d, filter_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, out_d);
             cudaMemcpy(out, out_d, sizeof(float) * B * out_dim * Hout * Wout, cudaMemcpyDeviceToHost);
+        }
+
+
+        void backward_gpu_mm(float * dLdy, bool use_cublas = true)
+        {
+            // cudaMemcpy all the necessary stuff
+            float * dLdy_d;
+            cudaMalloc((void **)&dLdy_d, sizeof(float)*B*out_dim*Hout*Wout);
+            cudaMemcpy(in_d, in, sizeof(float)*B*in_dim*H*W, cudaMemcpyHostToDevice);
+            cudaMemcpy(dLdy_d, dLdy , sizeof(float)*B*out_dim*Hout*Wout, cudaMemcpyHostToDevice);
+            cudaMemcpy(filter_d, filter , sizeof(float)*out_dim*in_dim *filter_size*filter_size, cudaMemcpyHostToDevice);
+
+            
+            //calc dLdf
+            cudaMemset(dLdf_d, 0.0, sizeof(float) * out_dim* in_dim *filter_size*filter_size);
+            dim3 dimofgrid_dLdf(out_dim*in_dim, filter_size * filter_size);
+            dim3 dimofblock_dLdf(TILE_SIZE,TILE_SIZE,1);
+            backward_kernel_dLdf<<<dimofgrid_dLdf, dimofblock_dLdf>>>(in_d, dLdy_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, dLdf_d);
+            cudaMemcpy(dLdf, dLdf_d,  sizeof(float) * out_dim * in_dim * filter_size * filter_size, cudaMemcpyDeviceToHost);
+            
+            
+            //calc dLdx
+            // Step 1 : unroll please
+            float * unrolled_d;
+            cudaMalloc((void **)&unrolled_d, sizeof(float)*out_dim*filter_size*filter_size*B*H*W);
+            dim3 dimofgrid_unroll_back(ceil((float)B * H*W*out_dim / 1024),1,1);
+            dim3 dimofblock_unroll_back(1024,1,1);
+            mm_unroll_back<<<dimofgrid_unroll_back, dimofblock_unroll_back>>>(dLdy_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, unrolled_d);
+
+            // Step 2: Transpose filter
+            float * filter_transposed_d; 
+            cudaMalloc((void **)&filter_transposed_d, sizeof(float)*out_dim*in_dim*filter_size * filter_size);
+
+            dim3 dimofgrid_transpose_filter_back(ceil((float)out_dim* in_dim * filter_size * filter_size / 1024),1,1);
+            dim3 dimofblock_transpose_filter_back(1024,1,1);
+            mm_transpose_filter_back<<<dimofgrid_transpose_filter_back, dimofblock_transpose_filter_back>>>(filter_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, filter_transposed_d);
+
+            // Step 3 : Matmul (cin Cout*f*f) . (Cout*f*f, B*H*W)
+            float * temp_d; 
+            cudaMalloc((void **)&temp_d, sizeof(float)*B*in_dim*H*W);
+
+            if (use_cublas)
+            {
+                cublas_matmul(filter_transposed_d, unrolled_d,temp_d,in_dim, out_dim * filter_size*filter_size, B * H*W);
+            }
+            else{
+                dim3 dimofgrid_matmtul_back( ceil((float)(B*H*W)/TILE_SIZE), ceil((float)in_dim/TILE_SIZE));
+                dim3 dimofblock_matmul_back(TILE_SIZE,TILE_SIZE);
+                mm_matmul<<<dimofgrid_matmtul_back, dimofblock_matmul_back>>>(filter_transposed_d, unrolled_d, in_dim, out_dim * filter_size*filter_size, B * H*W, temp_d);
+            }
+            // Step 3 : Transpose (Cin B*H*W) -> (B Cin H W) 
+            dim3 dimofgrid_transpose_back(ceil((float)B * in_dim * H*W / 1024),1,1);
+            dim3 dimofblock_transpose_back(1024,1,1);
+            mm_transpose_in_back<<<dimofgrid_transpose_back, dimofblock_transpose_back>>>(temp_d, B, out_dim, in_dim, filter_size, H, W, Hout, Wout, dLdx_d);
+
+            // Copy and free memory
+            cudaMemcpy(dLdx, dLdx_d, sizeof(float) * B * in_dim * H * W, cudaMemcpyDeviceToHost);
+            cudaFree(temp_d);
+            cudaFree(unrolled_d);
+            cudaFree(filter_transposed_d);
+            cudaFree(dLdy_d);
+
         }
         void backward_gpu(float * dLdy)
         {

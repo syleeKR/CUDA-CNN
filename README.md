@@ -7,10 +7,10 @@ _Just pure C++/CUDA with some simple math!_
 ## QuickStart
 To compile
 ```bash
-$ nvcc main.cu -o main -ccbin "[your directory if necessary]"
+$ nvcc main.cu -o main -ccbin "[your directory if necessary]" -lcublas
 
 e.g.
-$ nvcc main.cu -o main -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64"
+$ nvcc main.cu -o main -ccbin "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64" -lcublas
 ```
 To run
 ```bash

@@ -1,4 +1,6 @@
 
+#ifndef utils_hpp
+#define utils_hpp
 
 double duration(clock_t start, clock_t end)
 {
@@ -44,3 +46,63 @@ vint randomPermutation(int n) {
 
     return result;
 }
+
+
+void check_gpu_array(float * target, int checksize)
+{
+    float * check = new float[checksize];
+    cudaMemcpy(check, target, sizeof(float) * checksize, cudaMemcpyDeviceToHost);
+    cout<<"checking"<<endl;
+    for(int i =0 ; i<checksize; i+=100)cout<<check[i]<<" ";
+    cout<<endl;
+    delete [] check;
+}
+
+
+string cublasGetErrorString(cublasStatus_t status) {
+    switch(status) {
+        case CUBLAS_STATUS_SUCCESS:
+            return "CUBLAS_STATUS_SUCCESS";
+        case CUBLAS_STATUS_NOT_INITIALIZED:
+            return "CUBLAS_STATUS_NOT_INITIALIZED";
+        case CUBLAS_STATUS_ALLOC_FAILED:
+            return "CUBLAS_STATUS_ALLOC_FAILED";
+        case CUBLAS_STATUS_INVALID_VALUE:
+            return "CUBLAS_STATUS_INVALID_VALUE";
+        case CUBLAS_STATUS_ARCH_MISMATCH:
+            return "CUBLAS_STATUS_ARCH_MISMATCH";
+        case CUBLAS_STATUS_MAPPING_ERROR:
+            return "CUBLAS_STATUS_MAPPING_ERROR";
+        case CUBLAS_STATUS_EXECUTION_FAILED:
+            return "CUBLAS_STATUS_EXECUTION_FAILED";
+        case CUBLAS_STATUS_INTERNAL_ERROR:
+            return "CUBLAS_STATUS_INTERNAL_ERROR";
+        case CUBLAS_STATUS_NOT_SUPPORTED:
+            return "CUBLAS_STATUS_NOT_SUPPORTED";
+        case CUBLAS_STATUS_LICENSE_ERROR:
+            return "CUBLAS_STATUS_LICENSE_ERROR";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+void cublas_matmul(const float* A, const float* B, float* C, int m, int k, int n) {
+    cublasHandle_t handle;
+    cublasCreate(&handle);
+
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+
+
+    cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, 
+                                n, m, k, &alpha, 
+                                  B, n,
+                                  A, k,
+                                  &beta, 
+                                  C, n);
+
+
+    cublasDestroy(handle);
+}
+
+#endif
