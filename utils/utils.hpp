@@ -48,12 +48,21 @@ vint randomPermutation(int n) {
 }
 
 
-void check_gpu_array(float * target, int checksize)
+void check_gpu_array(bool * target, int checksize, int step =100)
+{
+    bool * check = new bool[checksize];
+    cudaMemcpy(check, target, sizeof(bool) * checksize, cudaMemcpyDeviceToHost);
+    cout<<"checking"<<endl;
+    for(int i =0 ; i<checksize; i+=step)cout<<check[i]<<" ";
+    cout<<endl;
+    delete [] check;
+}
+void check_gpu_array(float * target, int checksize, int step =100)
 {
     float * check = new float[checksize];
     cudaMemcpy(check, target, sizeof(float) * checksize, cudaMemcpyDeviceToHost);
     cout<<"checking"<<endl;
-    for(int i =0 ; i<checksize; i+=100)cout<<check[i]<<" ";
+    for(int i =0 ; i<checksize; i+=step)cout<<check[i]<<" ";
     cout<<endl;
     delete [] check;
 }

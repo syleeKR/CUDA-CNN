@@ -29,6 +29,9 @@
 
 #include "./gpu_kernels/convolution_direct.cuh"
 #include "./gpu_kernels/convolution_matmul.cuh"
+#include "./gpu_kernels/cnn_update.cuh"
+#include "./gpu_kernels/relu.cuh"
+#include "./gpu_kernels/maxpool.cuh"
 
 #include "./networks/relu.hpp"
 #include "./networks/maxpool.hpp"
@@ -87,17 +90,22 @@ void eval(DATA & test_data, int batch_size, ConvNet & net, int epoch)
 }
 int main(int args, char * argv[])
 {
-    // read device mode
-    string device = "cpu";
-    if(args>1){string mode = argv[1]; if(mode=="gpu")device = "gpu"; if(mode=="gpu_mm")device = "gpu_mm";}
-
+    // read  mode
+    string mode = "gpu_optimized";
+    if(args>1)
+    {   
+        string input = argv[1];
+        if(input=="cpu")mode="cpu";
+        if(input=="gpu_optimized")mode = "gpu_optimized";
+        if(input=="gpu_naive")mode = "gpu_naive";
+    }
     // prepare Mnist data
     pair<DATA,DATA> data =  read();
     DATA train_data = data.fi; DATA test_data = data.se;
 
     // set up some hyperparameters and network
     int batch_size = 64;
-    ConvNet net = ConvNet(device , batch_size);
+    ConvNet net = ConvNet(mode , batch_size);
     int total_epoch = 3;
     float lr = 0.005;
 

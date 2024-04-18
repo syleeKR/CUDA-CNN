@@ -16,13 +16,13 @@ To run
 ```bash
 $ ./main {mode}
 
-mode is either cpu or gpu or gpu_mm
+mode is either cpu or gpu_optimized or gpu_naive. If you don't specifiy mode, gpu_optimized is selected as default.
 e.g.  
-$ ./main gpu
-$ ./main gpu_mm  
+$ ./main gpu_optimized
+$ ./main cpu  
 
-gpu mode uses gpu kernels that calculates convolution directly.
-gpu_mm mode uses gpu kernels that calculates convolution via matrix multiplication
+gpu_naive mode uses gpu kernels that calculates convolution directly.
+gpu_optimized mode uses gpu kernels that calculates convolution via matrix multiplication
 ```
 
 ## Notes
@@ -36,6 +36,8 @@ Softmax
 The gpu speed up is devoted to the following layers
 ```bash
 Conv
+Maxpool
+RELU
 ```
 
 ### Results
@@ -55,9 +57,9 @@ Convnet :
     Softmax()
 ```
 Training for 1 epoch
-> [_gpu + convolution via matrix multiplication_]  time : 75.76s  accuracy : 97.76%  
-> [_gpu + direct convolution_]  time : 69.27  accuracy : 97.76%  
-> [_cpu_]  
+> [_gpu + convolution via matrix multiplication_]  time : 9.526.  accuracy : 98.16%  
+> [_gpu + direct convolution_]  time : 3.49.  accuracy : 97.34%  
+> [_cpu_]  time : >1000s
 <br>
 
 Benchmark setting 2
@@ -75,6 +77,3 @@ Convnet :
     Softmax()
 ```
 Training for 1 epoch
-> [_gpu + convolution via matrix multiplication_]  time : 348.78s  accuracy : 97.68%  
-> [_gpu + direct convolution_]  time : 350.51s  accuracy : 97.74%  
-> [_cpu_]  

@@ -7,31 +7,57 @@
 class MAXPOOL
 {
     public:
+        string mode;
         int B,C,H,W;
         float * in = nullptr;
         float * out = nullptr;
         float * dLdx = nullptr;
         bool * wasmax = nullptr;
 
+        float * in_d = nullptr;
+        float * out_d = nullptr;
+        float * dLdx_d = nullptr;
+        bool * wasmax_d = nullptr;
+
         MAXPOOL(){}
-        MAXPOOL(vint & input_size)
+        MAXPOOL(vint & input_size, string mode):mode(mode)
         {
             B = input_size[0];
             C = input_size[1];
             H = input_size[2];
             W = input_size[3];
 
-            in = new float[B*C*H*W];
-            wasmax = new bool[B*C*H*W];
-            out = new float[B*C*(H/2)*(W/2)];
-            dLdx = new float[B*C*H*W];
+            if (mode == "gpu_optimized"  || mode =="gpu_naive")
+            {
+                cudaMalloc((void **)&in_d, sizeof(float) * B*C*H*W);
+                cudaMalloc((void **)&out_d, sizeof(float) * B*C*(H/2)*(W/2));
+                cudaMalloc((void **)&dLdx_d, sizeof(float) * B*C*H*W);
+                cudaMalloc((void **)&wasmax_d, sizeof(bool) * B*C*H*W);
+
+            }
+            else{
+                in = new float[B*C*H*W];
+                wasmax = new bool[B*C*H*W];
+                out = new float[B*C*(H/2)*(W/2)];
+                dLdx = new float[B*C*H*W];
+            }
         }
         ~MAXPOOL()
         {
-            delete [] in;
-            delete [] wasmax;
-            delete [] out;
-            delete [] dLdx;
+            if (mode == "gpu_optimized" || mode == "gpu_naive")
+            {
+                cudaFree(in_d);
+                cudaFree(out_d);
+                cudaFree(dLdx_d);
+                cudaFree(wasmax_d);
+            }
+            else
+            {
+                delete [] in;
+                delete [] out;
+                delete [] dLdx;
+                delete [] wasmax;
+            }
         }
         int index(int i, int j, int k, int l)
         {
@@ -42,6 +68,33 @@ class MAXPOOL
             return C*H/2*W/2*i + H/2*W/2 *j + W/2 *k + l;
         }
         void forward(float * x)
+        {
+            if (mode == "gpu_optimized" || mode == "gpu_naive")forward_gpu(x);
+            else forward_cpu(x);
+        }
+        void backward(float * dLdy)
+        {
+            if (mode == "gpu_optimized" || mode == "gpu_naive")backward_gpu(dLdy);
+            else backward_cpu(dLdy);
+        }
+
+        void forward_gpu(float * x)
+        {
+            cudaMemcpy(in_d, x, B*C*H*W*sizeof(float), cudaMemcpyDeviceToDevice);
+            cudaMemset(wasmax_d, 0, sizeof(bool) * B * C*H*W);
+            dim3 a(ceil((float)B*C*(H/2) * (W/2)/1024),1,1);
+            dim3 b(1024,1,1);
+            maxpool_forward<<<a,b>>>(in_d, wasmax_d, out_d, B, C, H/2,W/2 );
+        }
+        void backward_gpu(float * dLdy_d)
+        {
+            dim3 a(ceil((float)B*C*H*W/1024),1,1);
+            dim3 b(1024,1,1);
+            maxpool_backward<<<a,b>>>(dLdy_d, wasmax_d, dLdx_d, B, C, H,W );
+        }
+
+
+        void forward_cpu(float * x)
         {
             REP0(i, B)
             {
@@ -87,7 +140,7 @@ class MAXPOOL
 
         }
 
-        void backward(float * dLdy)
+        void backward_cpu(float * dLdy)
         {
             REP0(i, B)
             {
