@@ -57,9 +57,9 @@ Convnet :
     Softmax()
 ```
 Training for 1 epoch
-> [_gpu + convolution via matrix multiplication_]  time : 9.526.  accuracy : 98.16%  
-> [_gpu + direct convolution_]  time : 3.49.  accuracy : 97.34%  
-> [_cpu_]  time : >1000s
+> [_gpu + convolution via matrix multiplication_]  time : 8.64s  accuracy : 97.94%  
+> [_gpu + direct convolution_]  time : 3.76s  accuracy : 97.90%  
+> [_cpu_]  time : 1344s
 <br>
 
 Benchmark setting 2
@@ -67,13 +67,16 @@ Benchmark setting 2
 Batch size = 64
 learning rate = 5e-3
 Convnet : 
-    Conv(1, 64, 5,5)
+    Conv(1, 256, 5,5)
     Maxpool()
     RELU()
-    Conv(64, 256, 3,3)
+    Conv(256, 256, 3,3)
     Maxpool()
     RELU()
     Conv(256, 10, 5,5)
     Softmax()
 ```
 Training for 1 epoch
+> [_gpu + convolution via matrix multiplication_]  time : 228s  accuracy : 97.5%  
+> [_gpu + direct convolution_]  time : 262s  accuracy : 97.56%    
+> the optimized version works faster for larger(practical) networks since the whole unrolling, transposing, and multiplying widened matrices simply acts as an overhead for small networks. 

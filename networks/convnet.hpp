@@ -49,18 +49,16 @@ class ConvNet
 
             input_size = {B,16,24,24};
             maxpool1 = new MAXPOOL(input_size,mode);
-
-            relu1 = new RELU(B * 16 * 12 * 12,mode);
-
             input_size = {B,16,12,12};
+            relu1 = new RELU(input_size,mode);
+
             cnn2 = new CNN(16, 32, 3, input_size, mode);
 
             input_size = {B,32,10,10};
             maxpool2 = new MAXPOOL(input_size,mode);
-
-            relu2 = new RELU(B * 32 * 5 * 5,mode);
-
             input_size = {B,32,5,5};
+
+            relu2 = new RELU(input_size,mode);
             cnn3 = new CNN(32, 10, 5, input_size, mode);
             
             input_size = {B,10,1,1};

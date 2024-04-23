@@ -17,8 +17,13 @@ class RELU
         float * dLdx_d = nullptr;
 
         RELU(){}
-        RELU(int n, string mode):n(n), mode(mode)
+        RELU(vint & input_size, string mode):n(n), mode(mode)
         {
+            int B = input_size[0];
+            int C = input_size[1];
+            int H = input_size[2];
+            int W = input_size[3];
+            n = B*C*H*W;
             if (mode == "gpu_optimized" || mode=="gpu_naive")
             {
                 cudaMalloc((void **)&in_d, sizeof(float) * n);

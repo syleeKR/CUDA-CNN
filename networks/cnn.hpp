@@ -114,7 +114,7 @@ class CNN
             else if(mode == "gpu_optimized")backward_gpu_mm(dLdy);
             else backward_cpu(dLdy);
         }
-        void forward_gpu_mm(float * x, bool use_cublas= false)
+        void forward_gpu_mm(float * x, bool use_cublas= true)
         {
             // copy to device
             //memcpy(in, x, B*in_dim*H*W*sizeof(float));
@@ -167,7 +167,7 @@ class CNN
         }
 
 
-        void backward_gpu_mm(float * dLdy_d, bool use_cublas = false)
+        void backward_gpu_mm(float * dLdy_d, bool use_cublas = true)
         {
             // cudaMemcpy all the necessary stuff
             //float * dLdy_d;
